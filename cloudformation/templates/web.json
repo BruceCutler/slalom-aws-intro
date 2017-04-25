@@ -40,7 +40,7 @@
     "IAMRole" : {
       "Type" : "AWS::IAM::Role",
       "Properties" : {
-        "RoleName" : { "Fn::Join" : [ "-", [ { "Ref" : "Target" }, { "Ref" : "Stack" }, "webrole" ]]},
+        "RoleName" : "slalom_web_server",
         "AssumeRolePolicyDocument" : {
           "Version" : "2012-10-17",
           "Statement" : [
@@ -60,7 +60,7 @@
     "IAMPolicy" : {
       "Type" : "AWS::IAM::Policy",
       "Properties" : {
-        "PolicyName" : { "Fn::Join" : [ "-", [ { "Ref" : "Target" }, { "Ref" : "Stack" }, "webpolicy" ]]},
+        "PolicyName" : "slalom_web_server_policy",
         "Roles" : [{ "Ref" : "IAMRole" }],
         "PolicyDocument" : {
           "Version" : "2012-10-17",
@@ -100,12 +100,6 @@
             "FromPort" : "80",
             "ToPort" : "80",
             "CidrIp" : "0.0.0.0/0"
-          },
-          {
-            "IpProtocol" : "tcp",
-            "FromPort" : "443",
-            "ToPort" : "443",
-            "CidrIp" : "0.0.0.0/0"
           }
         ],
         "SecurityGroupEgress" : [
@@ -117,42 +111,17 @@
           }
         ],
         "VpcId" : { "Fn::ImportValue" : {"Fn::Sub": "${NetworkingStackName}-VPCID"} },
-        "Tags" : [ { "Key" : "Name", "Value" : { "Fn::Join" : [ "-", [ { "Ref" : "Target" }, { "Ref" : "Stack" }, "WebSG" ]]}} ]
-      }
-    },
-
-    "ELBSG" : {
-      "Type" : "AWS::EC2::SecurityGroup",
-      "Properties" : {
-        "GroupDescription" : "Security group for web servers",
-        "SecurityGroupIngress" : [
-          {
-            "IpProtocol" : "tcp",
-            "FromPort" : "80",
-            "ToPort" : "80",
-            "CidrIp" : "0.0.0.0/0"
-          }
-        ],
-        "SecurityGroupEgress" : [
-          {
-            "IpProtocol" : "-1",
-            "FromPort" : "0",
-            "ToPort" : "0",
-            "CidrIp" : "0.0.0.0/0"
-          }
-        ],
-        "VpcId" : { "Fn::ImportValue" : {"Fn::Sub": "${NetworkingStackName}-VPCID"} },
-        "Tags" : [ { "Key" : "Name", "Value" : { "Fn::Join" : [ "-", [ { "Ref" : "Target" }, { "Ref" : "Stack" }, "ELBSG" ]]}} ]
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom_aws_intro_webserver" } ]
       }
     },
 
     "ELB" : {
       "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties" : {
-        "LoadBalancerName" : { "Fn::Join" : [ "-", [ { "Ref" : "Target" }, { "Ref" : "Stack" }, "ELB" ]]},
+        "LoadBalancerName" : "slalom-aws-intro-web-elb",
         "CrossZone" : "true",
         "Subnets" : [{ "Fn::ImportValue" : {"Fn::Sub": "${NetworkingStackName}-PubSubnet1"} },{ "Fn::ImportValue" : {"Fn::Sub": "${NetworkingStackName}-PubSubnet2"} }],
-        "SecurityGroups" : [{ "Ref" : "ELBSG" }],
+        "SecurityGroups" : [{ "Ref" : "WebSG" }],
         "ConnectionDrainingPolicy" : { "Enabled" : "true" , "Timeout" : 300 },
         "Listeners" : [{
             "InstancePort" : "80",
@@ -160,7 +129,7 @@
             "LoadBalancerPort" : "80",
             "Protocol" : "http"
           }],
-        "Tags" : [ { "Key" : "Name", "Value" : { "Fn::Join" : [ "-", [ { "Ref" : "Target" }, { "Ref" : "Stack" }, "ELB" ]]}} ]
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom_aws_intro_web_elb" } ]
       }
     },
 
@@ -172,7 +141,26 @@
         "InstanceType" : { "Ref" : "WebServerInstanceType" },
         "IamInstanceProfile" : { "Ref" : "IAMProfile" },
         "KeyName" : { "Ref" : "KeyName" },
-        "SecurityGroups" : [{ "Ref" : "WebSG" }]
+        "SecurityGroups" : [{ "Ref" : "WebSG" }],
+        "UserData" : {
+          "Fn::Base64" : {
+            "Fn::Join" : [ "\n", [
+            "#!/bin/bash",
+            "sudo yum update -y",
+            "sudo yum install httpd -y",
+            "sudo service httpd start",
+            "sudo chkconfig httpd on",
+            "sudo groupadd www",
+            "sudo usermod -a -G www ec2-user",
+            "sudo chown -R ec2-user:ec2-user /var/www",
+            "sudo chmod 2775 /var/www",
+            "aws s3 cp s3://slalom-aws-intro/index.html /var/www/html/index.html",
+            "aws s3 cp s3://slalom-aws-intro/slalomlogo.png /var/www/html/slalomlogo.png",
+            "sudo find /var/www -type d -exec chmod 2775 {} +",
+            "sudo find /var/www -type f -exec chmod 664 {} +"
+            ]]
+          }
+        }
       }
     },
 
@@ -185,7 +173,7 @@
         "LoadBalancerNames" : [{ "Ref" : "ELB" }],
         "VPCZoneIdentifier" : [{ "Fn::ImportValue" : {"Fn::Sub": "${NetworkingStackName}-PubSubnet1"} },{ "Fn::ImportValue" : {"Fn::Sub": "${NetworkingStackName}-PubSubnet2"} }],
         "Tags" : [ { "Key" : "Name",
-         "Value" : { "Fn::Join" : [ "-", [ { "Ref" : "Target" }, { "Ref" : "Stack" }, "ASG" ]]}, 
+         "Value" : "slalom_aws_intro_web_asg", 
          "PropagateAtLaunch" : "true" } ]
       }
     }

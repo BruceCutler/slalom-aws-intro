@@ -25,6 +25,6 @@
   },
   {
     "ParameterKey": "WebServerAMI",
-    "ParameterValue": "ami-24934132"
+    "ParameterValue": "ami-c58c1dd3"
   }
 ]

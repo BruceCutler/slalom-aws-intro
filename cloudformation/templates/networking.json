@@ -36,7 +36,7 @@
       "Properties" : {
         "CidrBlock" : { "Ref" : "VPCCIDRBlock" },
         "EnableDnsHostnames" : "true",
-        "Tags" : [ { "Key" : "Name", "Value" : { "Fn::Join" : [ "-", [ { "Ref" : "Target" }, { "Ref" : "Stack" } ]]}} ]
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro" } ]
       }
     },
 
@@ -49,7 +49,7 @@
         },
         "CidrBlock" : { "Ref" : "PubSubCIDR1" },
         "MapPublicIpOnLaunch" : "true",
-        "Tags" : [ { "Key" : "Name", "Value" : { "Fn::Join" : [ "-", [ { "Ref" : "Target" }, { "Ref" : "Stack" }, "pub1" ]]}} ],
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-pub1" } ],
         "VpcId" : { "Ref" : "VPC" }
       }
     },
@@ -63,7 +63,7 @@
         },
         "CidrBlock" : { "Ref" : "PubSubCIDR2" },
         "MapPublicIpOnLaunch" : "true",
-        "Tags" : [ { "Key" : "Name", "Value" : { "Fn::Join" : [ "-", [ { "Ref" : "Target" }, { "Ref" : "Stack" }, "pub2" ]]}} ],
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-pub2" } ],
         "VpcId" : { "Ref" : "VPC" }
       }
     },
@@ -71,7 +71,7 @@
     "IGW" : {
       "Type" : "AWS::EC2::InternetGateway",
       "Properties" : {
-        "Tags" : [ { "Key" : "Name", "Value" : { "Fn::Join" : [ "-", [ { "Ref" : "Target" }, { "Ref" : "Stack" }, "igw" ]]}} ]
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-igw" } ]
       }
     },
 
@@ -87,14 +87,14 @@
       "Type" : "AWS::EC2::RouteTable",
       "Properties" : {
         "VpcId" : { "Ref" : "VPC" },
-        "Tags" : [ { "Key" : "Name", "Value" : { "Fn::Join" : [ "-", [ { "Ref" : "Target" }, { "Ref" : "Stack" }, "pubrtb1" ]]}} ]
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-rtb1" } ]
       }
     },
     "PubRouteTable2" : {
       "Type" : "AWS::EC2::RouteTable",
       "Properties" : {
         "VpcId" : { "Ref" : "VPC" },
-        "Tags" : [ { "Key" : "Name", "Value" : { "Fn::Join" : [ "-", [ { "Ref" : "Target" }, { "Ref" : "Stack" }, "pubrtb2" ]]}} ]
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-rtb2" } ]
       }
     },
 
