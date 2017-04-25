@@ -14,7 +14,6 @@ upperTarget="$(tr '[:lower:]' '[:upper:]' <<< ${target:0:1})${target:1}"
 
 # Build stack names
 networkingStackName="${upperTarget}-networking"
-dataStackName="${upperTarget}-data"
 webStackName="${upperTarget}-web"
 
 echo "Deleting web stack..."
@@ -27,18 +26,6 @@ aws cloudformation wait stack-delete-complete --stack-name $webStackName
 
 echo
 echo "Web stack deletion complete!!!"
-echo
-
-echo "Deleting data stack..."
-
-# Delete web stack
-aws cloudformation delete-stack --stack-name $dataStackName
-
-# Wait for Web stack deletion
-aws cloudformation wait stack-delete-complete --stack-name $dataStackName
-
-echo
-echo "Data stack deletion complete!!!"
 echo
 
 echo "Deleting networking stack..."
