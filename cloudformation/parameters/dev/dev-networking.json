@@ -1,0 +1,22 @@
+[
+  {
+    "ParameterKey": "Target",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "Stack",
+    "ParameterValue": "networking"
+  },
+  {
+    "ParameterKey": "VPCCIDRBlock",
+    "ParameterValue": "10.1.0.0/16"
+  },
+  {
+    "ParameterKey": "PubSubCIDR1",
+    "ParameterValue": "10.1.0.0/24"
+  },
+  {
+    "ParameterKey": "PubSubCIDR2",
+    "ParameterValue": "10.1.1.0/24"
+  }
+]
