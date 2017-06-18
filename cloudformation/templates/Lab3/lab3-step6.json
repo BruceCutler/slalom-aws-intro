@@ -1,7 +1,7 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
 
-  "Description" : "Lab3 Stack - Step 4",
+  "Description" : "Lab3 Stack - Step 6",
 
   "Metadata" : {
   },
@@ -30,6 +30,18 @@
     "PrivSubCIDR2" : {
       "Type" : "String",
       "Description" : "This is the range of addresses for PublicSubnet3"
+    },
+    "DBUser" : {
+      "Type" : "String",
+      "Description" : "This is the user for your DB instance"
+    },
+    "DBPass" : {
+      "Type" : "String",
+      "Description" : "This is the password for you DB user"
+    },
+    "DBName" : {
+      "Type" : "String",
+      "Description" : "This is the name of the database created within RDS"
     },
     "MyKeyPair" : {
       "Type" : "AWS::EC2::KeyPair::KeyName"
@@ -237,6 +249,43 @@
         "RouteTableId" : { "Ref" : "PrivRouteTable1" }
       }
     },
+
+    "DBSubnetGroup" : {
+      "Type" : "AWS::RDS::DBSubnetGroup",
+      "Properties" : {
+        "DBSubnetGroupDescription" : "Subnet group used for RDS",
+        "SubnetIds" : [{ "Ref" : "PrivSubnet1"}, { "Ref" : "PrivSubnet2"} ],
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsubnetgroup" } ]
+      }
+    },
+
+    "DBSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "VPC Security group used for RDS",
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsecuritygroup" } ]
+      }
+    },
+
+    "RDSInstance" : {
+      "Type" : "AWS::RDS::DBInstance",
+      "Properties" : {
+        "DBInstanceIdentifier" : "slalom-aws-intro-rds",
+        "AllocatedStorage" : "10",
+        "Engine" : "MySQL",
+        "DBInstanceClass" : "db.t2.micro",
+        "DBName" : { "Ref" : "DBName" },
+        "MasterUsername" : { "Ref" : "DBUser" },
+        "MasterUserPassword" : { "Ref" : "DBPass" },
+        "MultiAZ" : "false",
+        "DBSubnetGroupName" : { "Ref" : "DBSubnetGroup" },
+        "AutoMinorVersionUpgrade" : "true",
+        "VPCSecurityGroups" : [ { "Ref" : "DBSecurityGroup" } ],
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-rds" } ]
+      }
+    },
+
 
 
 

@@ -233,7 +233,7 @@
       "Type" : "AWS::EC2::Route",
       "Properties" : {
         "DestinationCidrBlock" : "0.0.0.0/0",
-        "GatewayId" : { "Ref" : "NATGateway" },
+        "NatGatewayId" : { "Ref" : "NATGateway" },
         "RouteTableId" : { "Ref" : "PrivRouteTable1" }
       }
     },
