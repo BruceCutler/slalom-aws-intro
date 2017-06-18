@@ -1,7 +1,7 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
 
-  "Description" : "Lab1 Stack",
+  "Description" : "Lab3 Stack - Step 5",
 
   "Metadata" : {
   },
@@ -18,6 +18,18 @@
     "PubSubCIDR2" : {
       "Type" : "String",
       "Description" : "This is the range of addresses for PublicSubnet2"
+    },
+    "PubSubCIDR3" : {
+      "Type" : "String",
+      "Description" : "This is the range of addresses for PublicSubnet3"
+    },
+    "PrivSubCIDR1" : {
+      "Type" : "String",
+      "Description" : "This is the range of addresses for PublicSubnet3"
+    },
+    "PrivSubCIDR2" : {
+      "Type" : "String",
+      "Description" : "This is the range of addresses for PublicSubnet3"
     },
     "MyKeyPair" : {
       "Type" : "AWS::EC2::KeyPair::KeyName"
@@ -81,6 +93,46 @@
       }
     },
 
+    "PubSubnet3" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "AvailabilityZone" : {
+          "Fn::Select" : [ "2", { "Fn::GetAZs" : "" } ]
+
+        },
+        "CidrBlock" : { "Ref" : "PubSubCIDR3" },
+        "MapPublicIpOnLaunch" : "true",
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-pub3" } ],
+        "VpcId" : { "Ref" : "VPC" }
+      }
+    },
+
+    "PrivSubnet1" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "AvailabilityZone" : {
+          "Fn::Select" : [ "0", { "Fn::GetAZs" : "" } ]
+
+        },
+        "CidrBlock" : { "Ref" : "PrivSubCIDR1" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-priv1" } ],
+        "VpcId" : { "Ref" : "VPC" }
+      }
+    },
+
+    "PrivSubnet2" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "AvailabilityZone" : {
+          "Fn::Select" : [ "1", { "Fn::GetAZs" : "" } ]
+
+        },
+        "CidrBlock" : { "Ref" : "PrivSubCIDR2" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-priv2" } ],
+        "VpcId" : { "Ref" : "VPC" }
+      }
+    },
+
     "IGW" : {
       "Type" : "AWS::EC2::InternetGateway",
       "Properties" : {
@@ -104,6 +156,14 @@
       }
     },
 
+    "PrivRouteTable1" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-priv-rtb1" } ]
+      }
+    },
+
     "PubRtbAssoc1" : {
       "Type" : "AWS::EC2::SubnetRouteTableAssociation",
       "Properties" : {
@@ -120,6 +180,30 @@
       }
     },
 
+    "PubRtbAssoc3" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PubRouteTable1" },
+        "SubnetId" : { "Ref" : "PubSubnet3" }
+      }
+    },
+
+    "PrivRtbAssoc1" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PrivRouteTable1" },
+        "SubnetId" : { "Ref" : "PrivSubnet1" }
+      }
+    },
+
+    "PrivRtbAssoc2" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PrivRouteTable1" },
+        "SubnetId" : { "Ref" : "PrivSubnet2" }
+      }
+    },
+
     "IGWRoutePub1" : {
       "Type" : "AWS::EC2::Route",
       "Properties" : {
@@ -128,6 +212,61 @@
         "RouteTableId" : { "Ref" : "PubRouteTable1" }
       }
     },
+
+    "NATGatewayEIP" : {
+      "Type" : "AWS::EC2::EIP",
+      "Properties" : {
+        "Domain" : "vpc"
+      },
+      "DependsOn" : "IGWAttachment"
+    },
+    
+    "NATGateway" : {
+      "Type" : "AWS::EC2::NatGateway",
+      "Properties" : {
+        "AllocationId" : { "Fn::GetAtt" : ["NATGatewayEIP", "AllocationId"] },
+        "SubnetId" : { "Ref" : "PubSubnet1" }
+      }
+    },
+
+    "NATRoutePriv1" : {
+      "Type" : "AWS::EC2::Route",
+      "Properties" : {
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : { "Ref" : "NATGateway" },
+        "RouteTableId" : { "Ref" : "PrivRouteTable1" }
+      }
+    },
+
+    "DBSubnetGroup" : {
+      "Type" : "AWS::RDS::DBSubnetGroup",
+      "Properties" : {
+        "DBSubnetGroupDescription" : "Subnet group used for RDS",
+        "SubnetIds" : [{ "Ref" : "PrivSubnet1"}, { "Ref" : "PrivSubnet2"} ],
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsubnetgroup" } ]
+      }
+    },
+
+    "DBSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "VPC Security group used for RDS",
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsecuritygroup" } ]
+      }
+    },
+
+
+
+
+
+
+
+
+
+
+
+    
 
     "IAMRole" : {
       "Type" : "AWS::IAM::Role",
