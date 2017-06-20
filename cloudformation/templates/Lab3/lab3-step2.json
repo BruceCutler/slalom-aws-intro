@@ -155,19 +155,21 @@
       }
     },
 
-    "NATGatewayEIP" : {
-      "Type" : "AWS::EC2::EIP",
+    "DBSubnetGroup" : {
+      "Type" : "AWS::RDS::DBSubnetGroup",
       "Properties" : {
-        "Domain" : "vpc"
-      },
-      "DependsOn" : "IGWAttachment"
+        "DBSubnetGroupDescription" : "Subnet group used for RDS",
+        "SubnetIds" : [{ "Ref" : "PubSubnet1"}, { "Ref" : "PubSubnet2"} ],
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsubnetgroup" } ]
+      }
     },
-    
-    "NATGateway" : {
-      "Type" : "AWS::EC2::NatGateway",
+
+    "DBSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
-        "AllocationId" : { "Fn::GetAtt" : ["NATGatewayEIP", "AllocationId"] },
-        "SubnetId" : { "Ref" : "PubSubnet1" }
+        "GroupDescription" : "VPC Security group used for RDS",
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsecuritygroup" } ]
       }
     },
 

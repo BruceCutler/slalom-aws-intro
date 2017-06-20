@@ -9,27 +9,38 @@
   "Parameters" : {
     "VPCCIDRBlock" : {
       "Type" : "String",
-      "Description" : "This is the range of addresses for our VPC"
+      "Description" : "This is the range of addresses for our VPC",
+      "Default" : "10.0.0.0/16"
     },
     "PubSubCIDR1" : {
       "Type" : "String",
-      "Description" : "This is the range of addresses for PublicSubnet1"
+      "Description" : "This is the range of addresses for PublicSubnet1",
+      "Default" : "10.0.0.0/24"
     },
     "PubSubCIDR2" : {
       "Type" : "String",
-      "Description" : "This is the range of addresses for PublicSubnet2"
+      "Description" : "This is the range of addresses for PublicSubnet2",
+      "Default" : "10.0.1.0/24"
     },
     "PubSubCIDR3" : {
       "Type" : "String",
-      "Description" : "This is the range of addresses for PublicSubnet3"
+      "Description" : "This is the range of addresses for PublicSubnet3",
+      "Default" : "10.0.2.0/24"
     },
-    "PrivSubCIDR1" : {
+    "DBName" : {
       "Type" : "String",
-      "Description" : "This is the range of addresses for PublicSubnet3"
+      "Description" : "This is the range of name for the database inside our RDS",
+      "Default" : "testdb"
     },
-    "PrivSubCIDR2" : {
+    "DBUser" : {
       "Type" : "String",
-      "Description" : "This is the range of addresses for PublicSubnet3"
+      "Description" : "This is the username for the database",
+      "Default" : "testdbuser"
+    },
+    "DBPass" : {
+      "Type" : "String",
+      "Description" : "This is the password to use for the database",
+      "NoEcho" : "true"
     },
     "MyKeyPair" : {
       "Type" : "AWS::EC2::KeyPair::KeyName"
@@ -107,32 +118,6 @@
       }
     },
 
-    "PrivSubnet1" : {
-      "Type" : "AWS::EC2::Subnet",
-      "Properties" : {
-        "AvailabilityZone" : {
-          "Fn::Select" : [ "0", { "Fn::GetAZs" : "" } ]
-
-        },
-        "CidrBlock" : { "Ref" : "PrivSubCIDR1" },
-        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-priv1" } ],
-        "VpcId" : { "Ref" : "VPC" }
-      }
-    },
-
-    "PrivSubnet2" : {
-      "Type" : "AWS::EC2::Subnet",
-      "Properties" : {
-        "AvailabilityZone" : {
-          "Fn::Select" : [ "1", { "Fn::GetAZs" : "" } ]
-
-        },
-        "CidrBlock" : { "Ref" : "PrivSubCIDR2" },
-        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-priv2" } ],
-        "VpcId" : { "Ref" : "VPC" }
-      }
-    },
-
     "IGW" : {
       "Type" : "AWS::EC2::InternetGateway",
       "Properties" : {
@@ -189,19 +174,48 @@
       }
     },
 
-    "NATGatewayEIP" : {
-      "Type" : "AWS::EC2::EIP",
+    "DBSubnetGroup" : {
+      "Type" : "AWS::RDS::DBSubnetGroup",
       "Properties" : {
-        "Domain" : "vpc"
-      },
-      "DependsOn" : "IGWAttachment"
+        "DBSubnetGroupDescription" : "Subnet group used for RDS",
+        "SubnetIds" : [{ "Ref" : "PubSubnet1"}, { "Ref" : "PubSubnet2"}, { "Ref" : "PubSubnet3" } ],
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsubnetgroup" } ]
+      }
     },
-    
-    "NATGateway" : {
-      "Type" : "AWS::EC2::NatGateway",
+
+    "DBSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
-        "AllocationId" : { "Fn::GetAtt" : ["NATGatewayEIP", "AllocationId"] },
-        "SubnetId" : { "Ref" : "PubSubnet1" }
+        "GroupDescription" : "VPC Security group used for RDS",
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsecuritygroup" } ]
+      }
+    },
+
+    "RDSCluster" : {
+      "Type" : "AWS::RDS::DBCluster",
+      "Properties" : {
+        "MasterUsername" : { "Ref" : "DBUser" },
+        "MasterUserPassword" : { "Ref" : "DBPass" },
+        "Engine" : "aurora",
+        "DBSubnetGroupName" : { "Ref" : "DBSubnetGroup" },
+        "VpcSecurityGroupIds" : [ { "Ref" : "DBSecurityGroup" } ]
+      }
+    },
+
+    "RDSDBInstance" : {
+      "Type" : "AWS::RDS::DBInstance",
+      "Properties" : {
+        "DBSubnetGroupName" : {
+          "Ref" : "DBSubnetGroup"
+        },
+        "Engine" : "aurora",
+        "DBClusterIdentifier" : {
+          "Ref" : "RDSCluster"
+        },
+        "PubliclyAccessible" : "true",
+        "AvailabilityZone" : { "Fn::GetAtt" : [ "PubSubnet1", "AvailabilityZone" ] },
+        "DBInstanceClass" : "db.t2.small"
       }
     },
 
