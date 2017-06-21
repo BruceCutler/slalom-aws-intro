@@ -27,21 +27,6 @@
       "Description" : "This is the range of addresses for PublicSubnet3",
       "Default" : "10.0.2.0/24"
     },
-    "DBName" : {
-      "Type" : "String",
-      "Description" : "This is the range of name for the database inside our RDS",
-      "Default" : "testdb"
-    },
-    "DBUser" : {
-      "Type" : "String",
-      "Description" : "This is the username for the database",
-      "Default" : "testdbuser"
-    },
-    "DBPass" : {
-      "Type" : "String",
-      "Description" : "This is the password to use for the database",
-      "NoEcho" : "true"
-    },
     "MyKeyPair" : {
       "Type" : "AWS::EC2::KeyPair::KeyName"
     },
@@ -178,7 +163,7 @@
       "Type" : "AWS::RDS::DBSubnetGroup",
       "Properties" : {
         "DBSubnetGroupDescription" : "Subnet group used for RDS",
-        "SubnetIds" : [{ "Ref" : "PubSubnet1"}, { "Ref" : "PubSubnet2"}, { "Ref" : "PubSubnet3" } ],
+        "SubnetIds" : [{ "Ref" : "PubSubnet1"}, { "Ref" : "PubSubnet2"}, { "Ref" : "PubSubnet3"} ],
         "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsubnetgroup" } ]
       }
     },
@@ -192,30 +177,55 @@
       }
     },
 
-    "RDSCluster" : {
-      "Type" : "AWS::RDS::DBCluster",
+    "IAMRoleAurora" : {
+      "Type" : "AWS::IAM::Role",
       "Properties" : {
-        "MasterUsername" : { "Ref" : "DBUser" },
-        "MasterUserPassword" : { "Ref" : "DBPass" },
-        "Engine" : "aurora",
-        "DBSubnetGroupName" : { "Ref" : "DBSubnetGroup" },
-        "VpcSecurityGroupIds" : [ { "Ref" : "DBSecurityGroup" } ]
+        "RoleName" : "slalom_aurora_s3read",
+        "AssumeRolePolicyDocument" : {
+          "Version" : "2012-10-17",
+          "Statement" : [
+            {
+              "Action" : "sts:AssumeRole",
+              "Principal" : {
+                "Service" : "rds.amazonaws.com"
+              },
+              "Effect" : "Allow",
+              "Sid" : ""
+            }
+          ]
+        }
       }
     },
 
-    "RDSDBInstance" : {
-      "Type" : "AWS::RDS::DBInstance",
+    "IAMPolicyAurora" : {
+      "Type" : "AWS::IAM::Policy",
       "Properties" : {
-        "DBSubnetGroupName" : {
-          "Ref" : "DBSubnetGroup"
+        "PolicyName" : "slalom_aurora_s3read_policy",
+        "Roles" : [{ "Ref" : "IAMRoleAurora" }],
+        "PolicyDocument" : {
+          "Version" : "2012-10-17",
+          "Statement" : [
+            {
+              "Action": [
+                "s3:GetObject",
+                "s3:GetObjectVersion"
+              ],
+              "Effect" : "Allow",
+              "Resource" : "arn:aws:s3:::slalom-aws-intro"
+            }
+          ]
+        }
+      }
+    },
+
+    "RDSDBClusterParameterGroup" : {
+      "Type" : "AWS::RDS::DBClusterParameterGroup",
+      "Properties" : {
+        "Parameters" : {
+          "aurora_load_from_s3_role" : { "Fn::GetAtt" : [ "IAMRoleAurora", "Arn" ] }
         },
-        "Engine" : "aurora",
-        "DBClusterIdentifier" : {
-          "Ref" : "RDSCluster"
-        },
-        "PubliclyAccessible" : "true",
-        "AvailabilityZone" : { "Fn::GetAtt" : [ "PubSubnet1", "AvailabilityZone" ] },
-        "DBInstanceClass" : "db.t2.small"
+        "Family" : "aurora5.6",
+        "Description" : "Cluster parameter group for Aurora"
       }
     },
 

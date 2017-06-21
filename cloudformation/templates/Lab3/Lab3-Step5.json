@@ -1,7 +1,7 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
 
-  "Description" : "Lab3 Stack - Step 2",
+  "Description" : "Lab3 Stack - Step 5",
 
   "Metadata" : {
   },
@@ -9,26 +9,45 @@
   "Parameters" : {
     "VPCCIDRBlock" : {
       "Type" : "String",
-      "Description" : "This is the range of addresses for our VPC"
+      "Description" : "This is the range of addresses for our VPC",
+      "Default" : "10.0.0.0/16"
     },
     "PubSubCIDR1" : {
       "Type" : "String",
-      "Description" : "This is the range of addresses for PublicSubnet1"
+      "Description" : "This is the range of addresses for PublicSubnet1",
+      "Default" : "10.0.0.0/24"
     },
     "PubSubCIDR2" : {
       "Type" : "String",
-      "Description" : "This is the range of addresses for PublicSubnet2"
+      "Description" : "This is the range of addresses for PublicSubnet2",
+      "Default" : "10.0.1.0/24"
     },
     "PubSubCIDR3" : {
       "Type" : "String",
-      "Description" : "This is the range of addresses for PublicSubnet3"
+      "Description" : "This is the range of addresses for PublicSubnet3",
+      "Default" : "10.0.2.0/24"
+    },
+    "DBName" : {
+      "Type" : "String",
+      "Description" : "This is the name of the database to create within Aurora",
+      "Default" : "testdb"
+    },
+    "DBUser" : {
+      "Type" : "String",
+      "Description" : "This is the master user for the Aurora database"
+    },
+    "DBPass" : {
+      "Type" : "String",
+      "Description" : "This is the password for the master user in the Aurora database",
+      "NoEcho" : "true"
     },
     "MyKeyPair" : {
       "Type" : "AWS::EC2::KeyPair::KeyName"
     },
     "WebServerCount" : {
       "Type" : "String",
-      "AllowedValues" : ["2", "3"]
+      "AllowedValues" : ["2", "3"],
+      "Default" : "2"
     },
     "WebServerInstanceType" : {
       "Type" : "String",
@@ -170,6 +189,147 @@
         "GroupDescription" : "VPC Security group used for RDS",
         "VpcId" : { "Ref" : "VPC" },
         "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsecuritygroup" } ]
+      }
+    },
+
+    "IAMRoleAurora" : {
+      "Type" : "AWS::IAM::Role",
+      "Properties" : {
+        "RoleName" : "slalom_aurora_s3read",
+        "AssumeRolePolicyDocument" : {
+          "Version" : "2012-10-17",
+          "Statement" : [
+            {
+              "Action" : "sts:AssumeRole",
+              "Principal" : {
+                "Service" : "rds.amazonaws.com"
+              },
+              "Effect" : "Allow",
+              "Sid" : ""
+            }
+          ]
+        }
+      }
+    },
+
+    "IAMPolicyAurora" : {
+      "Type" : "AWS::IAM::Policy",
+      "Properties" : {
+        "PolicyName" : "slalom_aurora_s3read_policy",
+        "Roles" : [{ "Ref" : "IAMRoleAurora" }],
+        "PolicyDocument" : {
+          "Version" : "2012-10-17",
+          "Statement" : [
+            {
+              "Action": [
+                "s3:GetObject",
+                "s3:GetObjectVersion"
+              ],
+              "Effect" : "Allow",
+              "Resource" : "arn:aws:s3:::slalom-aws-intro"
+            }
+          ]
+        }
+      }
+    },
+
+    "RDSDBClusterParameterGroup" : {
+      "Type" : "AWS::RDS::DBClusterParameterGroup",
+      "Properties" : {
+        "Parameters" : {
+          "aurora_load_from_s3_role" : { "Fn::GetAtt" : [ "IAMRoleAurora", "Arn" ] }
+        },
+        "Family" : "aurora5.6",
+        "Description" : "Cluster parameter group for Aurora"
+      }
+    },
+
+    "RDSCluster" : {
+      "Type" : "AWS::RDS::DBCluster",
+      "Properties" : {
+        "DatabaseName" : { "Ref" : "DBName" },
+        "MasterUsername" : { "Ref" : "DBUser" },
+        "MasterUserPassword" : { "Ref" : "DBPass" },
+        "Engine" : "aurora",
+        "DBSubnetGroupName" : { "Ref" : "DBSubnetGroup" },
+        "DBClusterParameterGroupName" : { "Ref" : "RDSDBClusterParameterGroup" },
+        "VpcSecurityGroupIds" : [ { "Ref" : "DBSecurityGroup" } ]
+      }
+    },
+
+    "RDSDBInstance" : {
+      "Type" : "AWS::RDS::DBInstance",
+      "Properties" : {
+        "DBSubnetGroupName" : {
+          "Ref" : "DBSubnetGroup"
+        },
+        "Engine" : "aurora",
+        "DBClusterIdentifier" : {
+          "Ref" : "RDSCluster"
+        },
+        "PubliclyAccessible" : "true",
+        "AvailabilityZone" : { "Fn::GetAtt" : [ "PubSubnet1", "AvailabilityZone" ] },
+        "DBInstanceClass" : "db.t2.small"
+      }
+    },
+
+    "TableauSG" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Security group for the Tableau server",
+        "SecurityGroupIngress" : [
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "3389",
+            "ToPort" : "3389",
+            "CidrIp" : "0.0.0.0/0"
+          },
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "443",
+            "ToPort" : "443",
+            "CidrIp" : "0.0.0.0/0"
+          },
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "80",
+            "ToPort" : "80",
+            "CidrIp" : "0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupEgress" : [
+          {
+            "IpProtocol" : "-1",
+            "FromPort" : "0",
+            "ToPort" : "0",
+            "CidrIp" : "0.0.0.0/0"
+          }
+        ],
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom_aws_intro_tableau" } ]
+      }
+    },
+
+    "TableauServer" : {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+        "IamInstanceProfile" : { "Ref" : "IAMProfile" },
+        "ImageId" : "ami-24f27932",
+        "InstanceType" : "c3.4xlarge",
+        "KeyName" : { "Ref" : "MyKeyPair" },
+        "SecurityGroupIds" : [{ "Ref" : "TableauSG" }],
+        "SubnetId" : { "Ref" : "PubSubnet3" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom_aws_intro_tableau" } ],
+        "BlockDeviceMappings" : [
+          {
+            "DeviceName" : "/dev/sdb",
+            "Ebs" : {
+                "VolumeType" : "gp2",
+                "DeleteOnTermination" : "false",
+                "VolumeSize" : "60"
+            }
+          }
+        ]
       }
     },
 
