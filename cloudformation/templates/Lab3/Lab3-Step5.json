@@ -319,17 +319,7 @@
         "KeyName" : { "Ref" : "MyKeyPair" },
         "SecurityGroupIds" : [{ "Ref" : "TableauSG" }],
         "SubnetId" : { "Ref" : "PubSubnet3" },
-        "Tags" : [ { "Key" : "Name", "Value" : "slalom_aws_intro_tableau" } ],
-        "BlockDeviceMappings" : [
-          {
-            "DeviceName" : "/dev/sdb",
-            "Ebs" : {
-                "VolumeType" : "gp2",
-                "DeleteOnTermination" : "false",
-                "VolumeSize" : "60"
-            }
-          }
-        ]
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom_aws_intro_tableau" } ]
       }
     },
 
