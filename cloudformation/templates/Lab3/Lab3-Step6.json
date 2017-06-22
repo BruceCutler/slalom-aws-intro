@@ -1,7 +1,7 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
 
-  "Description" : "Lab3 Stack - Step 1",
+  "Description" : "Lab3 Stack - Step 6",
 
   "Metadata" : {
   },
@@ -62,7 +62,6 @@
       "Properties" : {
         "AvailabilityZone" : {
           "Fn::Select" : [ "0", { "Fn::GetAZs" : "" } ]
-
         },
         "CidrBlock" : { "Ref" : "PubSubCIDR1" },
         "MapPublicIpOnLaunch" : "true",
@@ -76,7 +75,6 @@
       "Properties" : {
         "AvailabilityZone" : {
           "Fn::Select" : [ "1", { "Fn::GetAZs" : "" } ]
-
         },
         "CidrBlock" : { "Ref" : "PubSubCIDR2" },
         "MapPublicIpOnLaunch" : "true",
@@ -90,7 +88,6 @@
       "Properties" : {
         "AvailabilityZone" : {
           "Fn::Select" : [ "2", { "Fn::GetAZs" : "" } ]
-
         },
         "CidrBlock" : { "Ref" : "PubSubCIDR3" },
         "MapPublicIpOnLaunch" : "true",
@@ -152,6 +149,76 @@
         "DestinationCidrBlock" : "0.0.0.0/0",
         "GatewayId" : { "Ref" : "IGW" },
         "RouteTableId" : { "Ref" : "PubRouteTable1" }
+      }
+    },
+
+    "DBSubnetGroup" : {
+      "Type" : "AWS::RDS::DBSubnetGroup",
+      "Properties" : {
+        "DBSubnetGroupDescription" : "Subnet group used for RDS",
+        "SubnetIds" : [{ "Ref" : "PubSubnet1"}, { "Ref" : "PubSubnet2"}, { "Ref" : "PubSubnet3"} ],
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsubnetgroup" } ]
+      }
+    },
+
+    "DBSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "VPC Security group used for RDS",
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsecuritygroup" } ]
+      }
+    },
+
+    "IAMRoleAurora" : {
+      "Type" : "AWS::IAM::Role",
+      "Properties" : {
+        "RoleName" : "slalom_aurora_s3read",
+        "AssumeRolePolicyDocument" : {
+          "Version" : "2012-10-17",
+          "Statement" : [
+            {
+              "Action" : "sts:AssumeRole",
+              "Principal" : {
+                "Service" : "rds.amazonaws.com"
+              },
+              "Effect" : "Allow",
+              "Sid" : ""
+            }
+          ]
+        }
+      }
+    },
+
+    "IAMPolicyAurora" : {
+      "Type" : "AWS::IAM::Policy",
+      "Properties" : {
+        "PolicyName" : "slalom_aurora_s3read_policy",
+        "Roles" : [{ "Ref" : "IAMRoleAurora" }],
+        "PolicyDocument" : {
+          "Version" : "2012-10-17",
+          "Statement" : [
+            {
+              "Action": [
+                "s3:GetObject",
+                "s3:GetObjectVersion"
+              ],
+              "Effect" : "Allow",
+              "Resource" : "arn:aws:s3:::slalom-aws-intro"
+            }
+          ]
+        }
+      }
+    },
+
+    "RDSDBClusterParameterGroup" : {
+      "Type" : "AWS::RDS::DBClusterParameterGroup",
+      "Properties" : {
+        "Parameters" : {
+          "aurora_load_from_s3_role" : { "Fn::GetAtt" : [ "IAMRoleAurora", "Arn" ] }
+        },
+        "Family" : "aurora5.6",
+        "Description" : "Cluster parameter group for Aurora"
       }
     },
 
