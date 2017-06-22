@@ -1,0 +1,388 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "Lab3 Stack - Step 6",
+
+  "Metadata" : {
+  },
+
+  "Parameters" : {
+    "VPCCIDRBlock" : {
+      "Type" : "String",
+      "Description" : "This is the range of addresses for our VPC"
+    },
+    "PubSubCIDR1" : {
+      "Type" : "String",
+      "Description" : "This is the range of addresses for PublicSubnet1"
+    },
+    "PubSubCIDR2" : {
+      "Type" : "String",
+      "Description" : "This is the range of addresses for PublicSubnet2"
+    },
+    "PubSubCIDR3" : {
+      "Type" : "String",
+      "Description" : "This is the range of addresses for PublicSubnet3"
+    },
+    "MyKeyPair" : {
+      "Type" : "AWS::EC2::KeyPair::KeyName"
+    },
+    "WebServerCount" : {
+      "Type" : "String",
+      "AllowedValues" : ["2", "3"]
+    },
+    "WebServerInstanceType" : {
+      "Type" : "String",
+      "Default" : "t2.micro",
+      "AllowedValues" : ["t2.micro"]
+    },
+    "WebServerAMI" : {
+      "Type" : "String",
+      "Default" : "ami-c58c1dd3"
+    }
+  },
+
+  "Mappings" : {
+  },
+
+  "Conditions" : {
+  },
+
+  "Resources" : {
+    "VPC" : {
+      "Type" : "AWS::EC2::VPC",
+      "Properties" : {
+        "CidrBlock" : { "Ref" : "VPCCIDRBlock" },
+        "EnableDnsHostnames" : "true",
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro" } ]
+      }
+    },
+
+    "PubSubnet1" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "AvailabilityZone" : {
+          "Fn::Select" : [ "0", { "Fn::GetAZs" : "" } ]
+        },
+        "CidrBlock" : { "Ref" : "PubSubCIDR1" },
+        "MapPublicIpOnLaunch" : "true",
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-pub1" } ],
+        "VpcId" : { "Ref" : "VPC" }
+      }
+    },
+
+    "PubSubnet2" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "AvailabilityZone" : {
+          "Fn::Select" : [ "1", { "Fn::GetAZs" : "" } ]
+        },
+        "CidrBlock" : { "Ref" : "PubSubCIDR2" },
+        "MapPublicIpOnLaunch" : "true",
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-pub2" } ],
+        "VpcId" : { "Ref" : "VPC" }
+      }
+    },
+
+    "PubSubnet3" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "AvailabilityZone" : {
+          "Fn::Select" : [ "2", { "Fn::GetAZs" : "" } ]
+        },
+        "CidrBlock" : { "Ref" : "PubSubCIDR3" },
+        "MapPublicIpOnLaunch" : "true",
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-pub3" } ],
+        "VpcId" : { "Ref" : "VPC" }
+      }
+    },
+
+    "IGW" : {
+      "Type" : "AWS::EC2::InternetGateway",
+      "Properties" : {
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-igw" } ]
+      }
+    },
+
+    "IGWAttachment" : {
+      "Type" : "AWS::EC2::VPCGatewayAttachment",
+      "Properties" : {
+        "InternetGatewayId" : { "Ref" : "IGW" },
+        "VpcId" : { "Ref" : "VPC" }
+      }
+    },
+
+    "PubRouteTable1" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-pub-rtb1" } ]
+      }
+    },
+
+    "PubRtbAssoc1" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PubRouteTable1" },
+        "SubnetId" : { "Ref" : "PubSubnet1" }
+      }
+    },
+
+    "PubRtbAssoc2" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PubRouteTable1" },
+        "SubnetId" : { "Ref" : "PubSubnet2" }
+      }
+    },
+
+    "PubRtbAssoc3" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PubRouteTable1" },
+        "SubnetId" : { "Ref" : "PubSubnet3" }
+      }
+    },
+
+    "IGWRoutePub1" : {
+      "Type" : "AWS::EC2::Route",
+      "Properties" : {
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : { "Ref" : "IGW" },
+        "RouteTableId" : { "Ref" : "PubRouteTable1" }
+      }
+    },
+
+    "DBSubnetGroup" : {
+      "Type" : "AWS::RDS::DBSubnetGroup",
+      "Properties" : {
+        "DBSubnetGroupDescription" : "Subnet group used for RDS",
+        "SubnetIds" : [{ "Ref" : "PubSubnet1"}, { "Ref" : "PubSubnet2"}, { "Ref" : "PubSubnet3"} ],
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsubnetgroup" } ]
+      }
+    },
+
+    "DBSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "VPC Security group used for RDS",
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsecuritygroup" } ]
+      }
+    },
+
+    "IAMRoleAurora" : {
+      "Type" : "AWS::IAM::Role",
+      "Properties" : {
+        "RoleName" : "slalom_aurora_s3read",
+        "AssumeRolePolicyDocument" : {
+          "Version" : "2012-10-17",
+          "Statement" : [
+            {
+              "Action" : "sts:AssumeRole",
+              "Principal" : {
+                "Service" : "rds.amazonaws.com"
+              },
+              "Effect" : "Allow",
+              "Sid" : ""
+            }
+          ]
+        }
+      }
+    },
+
+    "IAMPolicyAurora" : {
+      "Type" : "AWS::IAM::Policy",
+      "Properties" : {
+        "PolicyName" : "slalom_aurora_s3read_policy",
+        "Roles" : [{ "Ref" : "IAMRoleAurora" }],
+        "PolicyDocument" : {
+          "Version" : "2012-10-17",
+          "Statement" : [
+            {
+              "Action": [
+                "s3:GetObject",
+                "s3:GetObjectVersion"
+              ],
+              "Effect" : "Allow",
+              "Resource" : "arn:aws:s3:::slalom-aws-intro"
+            }
+          ]
+        }
+      }
+    },
+
+    "RDSDBClusterParameterGroup" : {
+      "Type" : "AWS::RDS::DBClusterParameterGroup",
+      "Properties" : {
+        "Parameters" : {
+          "aurora_load_from_s3_role" : { "Fn::GetAtt" : [ "IAMRoleAurora", "Arn" ] }
+        },
+        "Family" : "aurora5.6",
+        "Description" : "Cluster parameter group for Aurora"
+      }
+    },
+
+    "IAMRole" : {
+      "Type" : "AWS::IAM::Role",
+      "Properties" : {
+        "RoleName" : "slalom_web_server",
+        "AssumeRolePolicyDocument" : {
+          "Version" : "2012-10-17",
+          "Statement" : [
+            {
+              "Action" : "sts:AssumeRole",
+              "Principal" : {
+                "Service" : "ec2.amazonaws.com"
+              },
+              "Effect" : "Allow",
+              "Sid" : ""
+            }
+          ]
+        }
+      }
+    },
+
+    "IAMPolicy" : {
+      "Type" : "AWS::IAM::Policy",
+      "Properties" : {
+        "PolicyName" : "slalom_web_server_policy",
+        "Roles" : [{ "Ref" : "IAMRole" }],
+        "PolicyDocument" : {
+          "Version" : "2012-10-17",
+          "Statement" : [
+            {
+              "Action" : [
+                "s3:*"
+              ],
+              "Effect" : "Allow",
+              "Resource" : "*"
+            }
+          ]
+        }
+      }
+    },
+
+    "IAMProfile" : {
+      "Type" : "AWS::IAM::InstanceProfile",
+      "Properties" : {
+        "Roles" : [{ "Ref" : "IAMRole" }]
+      }
+    },
+
+    "WebSG" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Security group for web servers",
+        "SecurityGroupIngress" : [
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "22",
+            "ToPort" : "22",
+            "CidrIp" : "0.0.0.0/0"
+          },
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "80",
+            "ToPort" : "80",
+            "CidrIp" : "0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupEgress" : [
+          {
+            "IpProtocol" : "-1",
+            "FromPort" : "0",
+            "ToPort" : "0",
+            "CidrIp" : "0.0.0.0/0"
+          }
+        ],
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom_aws_intro_webserver" } ]
+      }
+    },
+
+    "ELB" : {
+      "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties" : {
+        "LoadBalancerName" : "slalom-aws-intro-web-elb",
+        "CrossZone" : "true",
+        "Subnets" : [ { "Ref" : "PubSubnet1" }, { "Ref" : "PubSubnet2" } ],
+        "SecurityGroups" : [{ "Ref" : "WebSG" }],
+        "ConnectionDrainingPolicy" : { "Enabled" : "true" , "Timeout" : 300 },
+        "Listeners" : [{
+            "InstancePort" : "80",
+            "InstanceProtocol" : "http",
+            "LoadBalancerPort" : "80",
+            "Protocol" : "http"
+          }],
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom_aws_intro_web_elb" } ]
+      }
+    },
+
+    "LaunchConfig" : {
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Properties" : {
+        "AssociatePublicIpAddress" : "true",
+        "ImageId" : { "Ref" : "WebServerAMI" },
+        "InstanceType" : { "Ref" : "WebServerInstanceType" },
+        "IamInstanceProfile" : { "Ref" : "IAMProfile" },
+        "KeyName" : { "Ref" : "MyKeyPair" },
+        "SecurityGroups" : [{ "Ref" : "WebSG" }],
+        "UserData" : {
+          "Fn::Base64" : {
+            "Fn::Join" : [ "\n", [
+            "#!/bin/bash",
+            "sudo yum update -y",
+            "sudo yum install httpd -y",
+            "sudo service httpd start",
+            "sudo chkconfig httpd on",
+            "sudo groupadd www",
+            "sudo usermod -a -G www ec2-user",
+            "sudo chown -R ec2-user:ec2-user /var/www",
+            "sudo chmod 2775 /var/www",
+            "aws s3 cp s3://slalom-aws-intro/index.html /var/www/html/index.html",
+            "aws s3 cp s3://slalom-aws-intro/slalomlogo.png /var/www/html/slalomlogo.png",
+            "sudo find /var/www -type d -exec chmod 2775 {} +",
+            "sudo find /var/www -type f -exec chmod 664 {} +"
+            ]]
+          }
+        }
+      }
+    },
+
+    "AutoscaleGroup" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "MaxSize" : "3",
+        "MinSize" : "2",
+        "LaunchConfigurationName" : { "Ref" : "LaunchConfig" },
+        "LoadBalancerNames" : [{ "Ref" : "ELB" }],
+        "VPCZoneIdentifier" : [ { "Ref" : "PubSubnet1" }, { "Ref" : "PubSubnet2" } ],
+        "Tags" : [ { "Key" : "Name",
+         "Value" : "slalom_aws_intro_web_asg", 
+         "PropagateAtLaunch" : "true" } ]
+      }
+    }
+
+  },
+
+  "Outputs" : {
+    "VPCId" : {
+      "Description" : "VPC ID",
+      "Value" : { "Ref" : "VPC" },
+      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-VPCID"}}
+    },
+
+    "PubSubnet1" : {
+      "Description" : "Public Subnet 1",
+      "Value" : { "Ref" : "PubSubnet1" },
+      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-PubSubnet1"}}
+    },
+
+    "PubSubnet2" : {
+      "Description" : "Public Subnet 2",
+      "Value" : { "Ref" : "PubSubnet2" },
+      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-PubSubnet2"}}
+    }
+  }
+}
+

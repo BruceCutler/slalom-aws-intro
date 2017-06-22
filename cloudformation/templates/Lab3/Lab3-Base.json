@@ -1,7 +1,7 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
 
-  "Description" : "Lab3 Stack - Base",
+  "Description" : "Lab3 Stack - Working",
 
   "Metadata" : {
   },
@@ -58,7 +58,6 @@
       "Properties" : {
         "AvailabilityZone" : {
           "Fn::Select" : [ "0", { "Fn::GetAZs" : "" } ]
-
         },
         "CidrBlock" : { "Ref" : "PubSubCIDR1" },
         "MapPublicIpOnLaunch" : "true",
@@ -72,7 +71,6 @@
       "Properties" : {
         "AvailabilityZone" : {
           "Fn::Select" : [ "1", { "Fn::GetAZs" : "" } ]
-
         },
         "CidrBlock" : { "Ref" : "PubSubCIDR2" },
         "MapPublicIpOnLaunch" : "true",
