@@ -1,0 +1,54 @@
+    "IAMRoleAurora" : {
+      "Type" : "AWS::IAM::Role",
+      "Properties" : {
+        "RoleName" : "slalom_aurora_s3read",
+        "AssumeRolePolicyDocument" : {
+          "Version" : "2012-10-17",
+          "Statement" : [
+            {
+              "Action" : "sts:AssumeRole",
+              "Principal" : {
+                "Service" : "rds.amazonaws.com"
+              },
+              "Effect" : "Allow",
+              "Sid" : ""
+            }
+          ]
+        }
+      }
+    },
+
+    "IAMPolicyAurora" : {
+      "Type" : "AWS::IAM::Policy",
+      "Properties" : {
+        "PolicyName" : "slalom_aurora_s3read_policy",
+        "Roles" : [{ "Ref" : "IAMRoleAurora" }],
+        "PolicyDocument" : {
+          "Version" : "2012-10-17",
+          "Statement" : [
+            {
+              "Action": [
+                "s3:GetObject",
+                "s3:GetObjectVersion"
+              ],
+              "Effect" : "Allow",
+              "Resource" : "arn:aws:s3:::aws-slalom-brown-bag-sample"
+            }
+          ]
+        }
+      }
+    },
+
+
+
+
+    "RDSDBClusterParameterGroup" : {
+      "Type" : "AWS::RDS::DBClusterParameterGroup",
+      "Properties" : {
+        "Parameters" : {
+          "aurora_load_from_s3_role" : { "Fn::GetAtt" : [ "IAMRoleAurora", "Arn" ] }
+        },
+        "Family" : "aurora5.6",
+        "Description" : "Cluster parameter group for Aurora"
+      }
+    },
