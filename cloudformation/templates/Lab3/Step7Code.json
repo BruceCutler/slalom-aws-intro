@@ -1,0 +1,45 @@
+    "DBName" : {
+      "Type" : "String",
+      "Description" : "This is the name of the database to create within Aurora"
+    },
+    "DBUser" : {
+      "Type" : "String",
+      "Description" : "This is the master user for the Aurora database"
+    },
+    "DBPass" : {
+      "Type" : "String",
+      "Description" : "This is the password for the master user in the Aurora database",
+      "NoEcho" : "true"
+    },
+
+
+
+
+    "RDSCluster" : {
+      "Type" : "AWS::RDS::DBCluster",
+      "Properties" : {
+        "DatabaseName" : { "Ref" : "DBName" },
+        "MasterUsername" : { "Ref" : "DBUser" },
+        "MasterUserPassword" : { "Ref" : "DBPass" },
+        "Engine" : "aurora",
+        "DBSubnetGroupName" : { "Ref" : "DBSubnetGroup" },
+        "DBClusterParameterGroupName" : { "Ref" : "RDSDBClusterParameterGroup" },
+        "VpcSecurityGroupIds" : [ { "Ref" : "DBSecurityGroup" } ]
+      }
+    },
+
+    "RDSDBInstance" : {
+      "Type" : "AWS::RDS::DBInstance",
+      "Properties" : {
+        "DBSubnetGroupName" : {
+          "Ref" : "DBSubnetGroup"
+        },
+        "Engine" : "aurora",
+        "DBClusterIdentifier" : {
+          "Ref" : "RDSCluster"
+        },
+        "PubliclyAccessible" : "true",
+        "AvailabilityZone" : { "Fn::GetAtt" : [ "PubSubnet1", "AvailabilityZone" ] },
+        "DBInstanceClass" : "db.t2.small"
+      }
+    },
