@@ -1,0 +1,31 @@
+    "PubSubCIDR3" : {
+      "Type" : "String",
+      "Description" : "This is the range of addresses for PublicSubnet3"
+    },
+
+
+
+
+    "PubSubnet3" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "AvailabilityZone" : {
+          "Fn::Select" : [ "2", { "Fn::GetAZs" : "" } ]
+        },
+        "CidrBlock" : { "Ref" : "PubSubCIDR3" },
+        "MapPublicIpOnLaunch" : "true",
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-pub3" } ],
+        "VpcId" : { "Ref" : "VPC" }
+      }
+    },
+
+
+
+
+    "PubRtbAssoc3" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PubRouteTable1" },
+        "SubnetId" : { "Ref" : "PubSubnet3" }
+      }
+    },
