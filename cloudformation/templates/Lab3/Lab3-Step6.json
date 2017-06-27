@@ -165,6 +165,14 @@
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
         "GroupDescription" : "VPC Security group used for RDS",
+        "SecurityGroupIngress" : [
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "3306",
+            "ToPort" : "3306",
+            "CidrIp" : "0.0.0.0/0"
+          }
+        ],
         "VpcId" : { "Ref" : "VPC" },
         "Tags" : [ { "Key" : "Name", "Value" : "slalom-aws-intro-dbsecuritygroup" } ]
       }
@@ -204,7 +212,7 @@
                 "s3:GetObjectVersion"
               ],
               "Effect" : "Allow",
-              "Resource" : "arn:aws:s3:::aws-slalom-brown-bag-sample"
+              "Resource" : "arn:aws:s3:::aws-slalom-brown-bag-sample/*"
             }
           ]
         }

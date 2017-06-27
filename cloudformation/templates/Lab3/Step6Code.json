@@ -32,7 +32,7 @@
                 "s3:GetObjectVersion"
               ],
               "Effect" : "Allow",
-              "Resource" : "arn:aws:s3:::aws-slalom-brown-bag-sample"
+              "Resource" : "arn:aws:s3:::aws-slalom-brown-bag-sample/*"
             }
           ]
         }
