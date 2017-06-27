@@ -1,0 +1,53 @@
+    "TableauSG" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Security group for the Tableau server",
+        "SecurityGroupIngress" : [
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "3389",
+            "ToPort" : "3389",
+            "CidrIp" : "0.0.0.0/0"
+          },
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "443",
+            "ToPort" : "443",
+            "CidrIp" : "0.0.0.0/0"
+          },
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "80",
+            "ToPort" : "80",
+            "CidrIp" : "0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupEgress" : [
+          {
+            "IpProtocol" : "-1",
+            "FromPort" : "0",
+            "ToPort" : "0",
+            "CidrIp" : "0.0.0.0/0"
+          }
+        ],
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom_aws_intro_tableau" } ]
+      }
+    },
+
+
+
+
+
+    "TableauServer" : {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+        "IamInstanceProfile" : { "Ref" : "IAMProfile" },
+        "ImageId" : "ami-24f27932",
+        "InstanceType" : "c3.4xlarge",
+        "KeyName" : { "Ref" : "MyKeyPair" },
+        "SecurityGroupIds" : [{ "Ref" : "TableauSG" }],
+        "SubnetId" : { "Ref" : "PubSubnet3" },
+        "Tags" : [ { "Key" : "Name", "Value" : "slalom_aws_intro_tableau" } ]
+      }
+    },
